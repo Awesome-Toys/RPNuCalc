@@ -1,3 +1,10 @@
+# Initialize 
+# Representing the node for the stack.
+# The node class defines a constructor and the required getter and setter methods.
+# rp2040 simulator https://wokwi.com/projects/new/micropython-pi-pico
+# https://www.codeproject.com/Articles/5346603/Reverse-Polish-Notation-RPN-Calculator-in-Python
+
+
 from machine import Pin, ADC, SoftSPI
 import utime
 import framebuf
@@ -5,7 +12,7 @@ from math import *
 import math
 import re
 
-entry_mode = "RPN"
+entry_mode = "Run"
 
 entry_chr = ""
 
@@ -270,7 +277,7 @@ font58.append([48,64,255,1,1])
 font58.append([0,31,1,1,30])
 font58.append([0,25,29,23,18])
 font58.append([0,60,60,60,60])
-font58.append([0,0,0,0,0])
+font58.append([23,29,4,124,4])
 
 keyTimeOut = 0
 
@@ -282,7 +289,7 @@ keyNameAlt = [["f","Menu","ClrST","aSin","aCos","aTan","{f(x)dx","Solver"],
               ["rot","sqrt","E","Sin","Cos","Tan","Sto","Rcl"],
               ["d.r.g","1/x","ln","e^x","log","10^x","pi","LASTx"]]
 
-angle_mode = "d"
+angle_mode = "deg"
 
 keypadRowPins = [4,3,2]
 keypadColPins = [8,9,10,11,12,13,14,15]
@@ -420,6 +427,16 @@ for i in keypadRowPins:
 for i in keypadColPins:
     col.append(Pin(i,Pin.OUT))
 
+
+def invert_mode():
+    pass
+#     for x in range(94, 112):
+#         fbuf.pixel(x,0,not fbuf.pixel(x,0))
+#         fbuf.pixel(x,7,not fbuf.pixel(x,7))
+#     for y in range(1,7):
+#         for x in range(93, 113):
+#             fbuf.pixel(x,y,not fbuf.pixel(x,y))
+
 vbat = adc.read_u16()/65535*4.4
 def draw_bat():
     global vbat
@@ -436,6 +453,11 @@ def draw_bat():
         bat = bat * 14
         bat = int(bat)
         fbuf.fill_rect(117,1, bat, 4, 1)
+
+def get_bat():
+    global vbat
+    vbat = vbat *.9  + (adc.read_u16()/65535*4.4)/10
+    return round(float(vbat),2)
 
 def setspeed():
     #check for the function key at startup if pressed then no power savings and USB enabled
@@ -581,6 +603,8 @@ def do_calc(expr): #main calculator functions
                 mystack.push(n3)
             elif x == "pi":
                 mystack.push(math.pi)
+            elif x == "vbat":
+                mystack.push(get_bat())
             elif x == "LASTx":
                 mystack.push(lastx)
             elif x == "y^x":
@@ -638,54 +662,54 @@ def do_calc(expr): #main calculator functions
                 mystack.push(n3)
             elif x == "Sin":
                 n1 = mystack.pop()
-                if angle_mode=="d":
+                if angle_mode=="deg":  #d
                     n3 = sin(radians(n1))
-                elif angle_mode=="g":
+                elif angle_mode=="grd": #g
                     n3 = sin(radFromGrad(n1))
                 else:
                     n3 = sin(n1)
                 mystack.push(n3)
             elif x == "Cos":
                 n1 = mystack.pop()
-                if angle_mode=="d":
+                if angle_mode=="deg":  #d
                     n3 = cos(radians(n1))
-                elif angle_mode=="g":
+                elif angle_mode=="grd": #g
                     n3 = cos(radFromGrad(n1))
                 else:
                     n3 = cos(n1)
                 mystack.push(n3)
             elif x == "Tan":
                 n1 = mystack.pop()
-                if angle_mode=="d":
+                if angle_mode=="deg":  #d
                     n3 = tan(radians(n1))
-                elif angle_mode=="g":
+                elif angle_mode=="grd": #g
                     n3 = tan(radFromGrad(n1))
                 else:
                     n3 = tan(n1)
                 mystack.push(n3)
             elif x == "aSin":
                 n1 = mystack.pop()
-                if angle_mode=="d":
+                if angle_mode=="deg":  #d
                     n3 = degrees(asin(n1))
-                elif angle_mode=="g":    
+                elif angle_mode=="grd": #g 
                     n3 = gradFromRad(asin(n1))
                 else:
                     n3 = asin(n1)
                 mystack.push(n3)
             elif x == "aCos":
                 n1 = mystack.pop()
-                if angle_mode=="d":
+                if angle_mode=="deg":  #d
                     n3 = degrees(acos(n1))
-                elif angle_mode=="g":    
+                elif angle_mode=="grd": #g 
                     n3 = gradFromRad(acos(n1))
                 else:
                     n3 = acos(n1)
                 mystack.push(n3)
             elif x == "aTan":
                 n1 = mystack.pop()
-                if angle_mode=="d":
+                if angle_mode=="deg":  #d
                     n3 = degrees(atan(n1))
-                elif angle_mode=="g":    
+                elif angle_mode=="grd": #g
                     n3 = gradFromRad(atan(n1))
                 else:
                     n3 = atan(n1)
@@ -713,9 +737,10 @@ dispstr = entry_chr
 enter = False
 fbuf.fill(0)
 lcd_text_big('0.',1)
-lcd_text(f"{entry_mode} {chr(230)}Calc",0,0)
-tmp = f"{angle_mode} {mystack.countNode()}"
+lcd_text(f"{chr(230)}Calc {entry_mode}",0,0)
+tmp = f"{chr(255)}{mystack.countNode()} {angle_mode}"
 lcd_text(tmp,112-6*len(tmp),0)
+invert_mode()
 draw_bat()
 dispstr = " " * 48 + dispstr
 lcd_text(dispstr[len(dispstr)-44:len(dispstr)-22],0,2)
@@ -745,7 +770,7 @@ while True:
 #     print("-------------------------------")
 #----------------------------------------------
 
-    if(key == "ENTR") and (entry_mode == "RPN"):
+    if(key == "ENTR") and (entry_mode == "Run"):
         if expr == "":
             enter = False
             do_calc("dup")
@@ -757,16 +782,15 @@ while True:
             expr = ""
             dispstr = entry_chr            
 
-    elif(key == "ENTR") and (entry_mode == "RPL"):
-        if not enter:
-            expr =expr + " "
-            dispstr = expr+entry_chr
-            enter = True
-        else:    
-            enter = False
-            do_calc(expr)
-            expr = ""
-            dispstr = entry_chr
+    elif(key == "ENTR") and (entry_mode == "PRG"):
+        if(expr==""):
+            expr = "dup "
+        else:
+            if(expr[len(expr)-1] != " "):
+                expr =expr + " "
+            else:
+                expr = expr + "dup "
+        dispstr = expr+entry_chr
 
     elif key == "<<":
         if expr_offset > 0:
@@ -794,19 +818,19 @@ while True:
              mystack.pop()
              
     elif(key == "d.r.g"):
-        if angle_mode=="d":
-            angle_mode="r"
-        elif angle_mode=="r":
-            angle_mode="g"
+        if angle_mode=="deg": 
+            angle_mode="rad"
+        elif angle_mode=="rad":
+            angle_mode="grd"
         else:
-            angle_mode="d"
+            angle_mode="deg"
         dispstr = expr+entry_chr
         
     elif(key == "Menu"):
-        if entry_mode=="RPN":
-            entry_mode="RPL"
+        if entry_mode=="Run":
+            entry_mode="PRG"
         else:
-            entry_mode="RPN"
+            entry_mode="Run"
         dispstr = expr+entry_chr
         
     elif(key == "Rcl"):
@@ -929,7 +953,7 @@ while True:
         expr =expr + " "
         dispstr = expr+entry_chr
         enter = True
-        if entry_mode == "RPN":
+        if entry_mode == "Run":
             enter = False
             do_calc(expr)
             expr = ""
@@ -954,15 +978,17 @@ while True:
         txt=f"{result:9.9E}"
         lcd_text_big(txt,1)
     else:
-        tmp_result = f"{result:14.13f}"[0:16]
-        tmp_result=tmp_result.rstrip('0').rstrip('.') if '.' in tmp_result else tmp_result
+        tmp_result = f"{result:14.15}"[0:16]
+        print(f"{result}")
+        #tmp_result=tmp_result.rstrip('0').rstrip('.') if '.' in tmp_result else tmp_result
         lcd_text_big(tmp_result,1)
     if errstr != "":
         lcd_text(errstr,0,0)
     else:    
-        lcd_text(f"{entry_mode} {chr(230)}Calc",0,0)
-        tmp = f"{angle_mode} {mystack.countNode()}"
+        lcd_text(f"{chr(230)}Calc {entry_mode}",0,0)
+        tmp = f"{chr(255)}{mystack.countNode()} {angle_mode}"
         lcd_text(tmp,112-6*len(tmp),0)
+        invert_mode()
         draw_bat()
     dispstr = " " * 48 + dispstr
     lcd_text(dispstr[len(dispstr)-44-expr_offset:len(dispstr)-22-expr_offset],0,2)
