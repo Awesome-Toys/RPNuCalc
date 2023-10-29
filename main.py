@@ -1,10 +1,3 @@
-# Initialize 
-# Representing the node for the stack.
-# The node class defines a constructor and the required getter and setter methods.
-# rp2040 simulator https://wokwi.com/projects/new/micropython-pi-pico
-# https://www.codeproject.com/Articles/5346603/Reverse-Polish-Notation-RPN-Calculator-in-Python
-
-
 from machine import Pin, ADC, SoftSPI
 import utime
 import framebuf
